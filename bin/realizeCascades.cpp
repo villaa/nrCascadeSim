@@ -184,9 +184,10 @@ int main(int argc, char** argv) {
   cout << "Seed used: " << cl << endl;
 
   MTRand *mtrand = new MTRand(cl);
+  cout << "MTRand: " << mtrand << endl;
 
   //get a root file and make 
-  TFile *f = new TFile(outputfile.c_str(),"recreate");
+  TFile *f = TFile::Open(outputfile.c_str(),"recreate");
   TTree *t = new TTree("cascade","cascade");
 
   //go through the input files

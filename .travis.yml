@@ -14,7 +14,8 @@ install:
   - conda info -a
 
   #- conda config --set channel_priority strict
-  - conda env create --debug -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrCascadeSim_env.yml 
+
+  - conda env create -n test-environment python=$TRAVIS_PYTHON_VERSION -f nrCascadeSim_env.yml 
   - conda create -n piptest pip
   - source activate piptest
   - pip install -r example-usecase/requirements.txt
@@ -43,9 +44,11 @@ install:
   - make
 
 script:
-- bin/realizeCascades -n 100000 -o ~/output.root levelfiles/Si28_ngam_all_cascades_rfmt_sorted.txt
+- bin/realizeCascades -n 100000 -o "output.root?reproducible=fixedname" -d 1 levelfiles/Si28_ngam_all_cascades_rfmt_sorted.txt
+- md5sum output.root
+- md5sum output.root | awk '{if ($1=="2029e8b402b89d3a05d745e48f546370"){print"Checksum passed!"} else {exit 1}}'
+# NOTE that the checksum seems for some reason to be dependent on the relative path given
 - cd example-usecase
 - travis_wait 50 py.test
 - source activate piptest
 - travis_wait 50 py.test
-# run some kind of script that checks the output of realizeCascades
