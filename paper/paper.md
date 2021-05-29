@@ -28,8 +28,8 @@ nocite: '@*'
 Neutron capture-induced nuclear recoils have emerged as an important
 tool for detector calibrations in direct dark matter detection and coherent elastic neutrino-nucleus scattering (CE$\mathrm{\nu}$NS).
 
-`nrCascadeSim` is a command-line tool for generating simulation data for energy deposits
-resulting from neutron capture on pure materials. Presently, silicon, germanium, neon, and argon are
+`nrCascadeSim` is a C++ command-line tool for generating simulation data for energy deposits
+resulting from neutron capture on pure materials. Presently, capture events within Silicon, Germanium, Neon, and Argon are
 supported. While the software was developed for solid state detector calibration, it can be used
 for any application which requires simulated neutron capture-induced nuclear recoil data.
 
@@ -40,14 +40,17 @@ multiple steps &mdash; that is, the captured neutron may go from its state to th
 it may go to another state with lower energy that is not the ground state (provided that one
 exists).  The cascade refers to the particular "path" of energy levels that a captured neutron
 takes to get to the ground state from the neutron separation energy. Currently the code assumes
-that the neutrons that enter the nuclear system have negligible (zero) kinetic energy; this is a
+that the neutrons that enter the nuclear system have zero kinetic energy; this is a
 good approximation for thermal neutrons because 0.0254\ eV (the average kinetic energy of a
-thermal neutron) is small compared to most nuclear recoil energy scales.
+thermal neutron) is small compared to most nuclear recoil energy scales, making it negligible.
 
 `nrCascadeSim` models many of these cascades at once and saves the energies along with other
-useful data to a single file, the structure of which is outlined in Figure \ref{rootfile_fig}.
-
-![An outline of the structure of a ROOT [@ROOT] output file named \texttt{file.root}. Everything is contained within a top-level key called \texttt{cascade}. Beneath \texttt{cascade} are several other keys, each pointing to an array. Each array element corresponds to one cascade; the same index will point to the same cascade across arrays. \texttt{n} notes the number of energy levels in the cascade. \texttt{cid} is short for "cascade ID" and refers to the row number of the levelfile which was used to generate the cascade, starting from zero. Each element of \texttt{Elev} is an array noting the energy levels used, given in eV. Similarly, \texttt{taus} notes the lifetimes of these states used, given in attoseconds. Both \texttt{Elev} and \texttt{taus} will have entries with a length of the corresponding value of n, so if \texttt{n[3]} is four then the lengths of \texttt{Elev[3]} and \texttt{taus[3]} will both be four. \texttt{delE} lists the energies deposited during the cascade in eV, and will always a length of one less than n. \texttt{I} calculates the ionization in terms of a number of charges, and \texttt{Ei} combines \texttt{I} with \texttt{delE} to list the ionization energy in eV. \texttt{time} describes the simulation-generated time that the neutron spent at each energy level, in attoseconds, and has a length corresponding to n. \texttt{Eg} provides gamma energies associated with each decay, in MeV, and has a length corresponding to one less than n. The gamma energies are not included in any of the other energy arrays. \label{rootfile_fig}](joss_fig.pdf)
+useful data to a single file. 
+While there are tools, such as the GEANT4 [@Geant4] framework, that allow users to simulate neutron capture, 
+existing tools are not built specifically for neutron capture-based nuclear recoils as NR Cascade Sim is and therefore uses some underlying assumptions that 
+NR Cascade Sim does not. The main approximation used in GEANT4 that we avoid in NR Cascade Sim is that all recoils 
+decay directly to the ground state. While this works for some applications, it is necessary to be more precise 
+when an accurate spectrum of neutron capture-based recoils is needed for analyses such as calibration or noise subtraction.
 
 # Models Used
 
@@ -65,48 +68,37 @@ However, these are not generally well-known unless the branching ratios are well
 If the ratios are well-known, then a correction can be made and incorporated into the input file.}, 
 and the angle is simulated as having a uniform distribution on the surface of a sphere.
 Cascade selection is weighted by isotope abundance and cross-section as well as the probability of
-the energy level.  In+ existing levelfiles, energy levels are derived from [@Ge] for germanium
+the energy level.  In existing levelfiles, energy levels are derived from [@Ge] for Germanium
 and from [@Si] for Silicon.
 
 The above process models the recoil energies, and the output gives both the total recoil energy
 for a cascade as well as the energy per step.  For some applications, this may be the desired
 output, or the user may already have a particular process they will use for converting this
 energy to what they wish to measure.  However, we also include, for convenience, the ionization yield
-and ionization energy of these recoils.  This ionization yield assumes the Lindhard
-model[@lindhard]:
+and ionization energy of these recoils.  Ionization yield is a fraction that, when multiplied by the 
+energy, gives the ionization energy, and ionization energy is the amount of energy that would be 
+read out if an otherwise equivalent electron recoil were to occur. This calculation is useful because
+many solid-state detectors read out the ionization energy for nuclear recoils. This ionization yield
+assumes the Lindhard model [@lindhard].
 
-$$
-\begin{array}{rcl}
-  Y & = & \frac{kg_{(\epsilon)}}{1+kg_{(\epsilon)}} \\
-  g_{(\epsilon)} & = & a\epsilon^\gamma + b\epsilon^w + \epsilon \\
-  \epsilon_{(E_r)} & = & 11.5E_r[keV]Z^{-7/3}
-\end{array}
-$$
+Figure \ref{LindvSor_fig} compares the normalized frequencies of ionization energies from the Lindhard [@lindhard] 
+model with the Sorensen [@sorensen] yield model, which is applied after the simulation using python, and applies 
+detector resolution models applied to both. This figure demonstrates one example of user-applied analysis utilizing 
+the energy deposits at each step instead of the ionization energy.
 
-Using the accepted value for Silicon ($k=0.143$) or Germanium ($k=0.159$), whichever is
-appropriate; $a=3$; and $b=0.7$.
+![An overlaid histogram showing an example use case in which points are generated and then multiple yield models and resolutions are applied.  The "Small Res (1/5)" histograms have Gaussians with 1/5 of the width of their counterparts. \label{LindvSor_fig}](SorVsLin_fig.pdf)
 
 # Statement of Need
 
-`nrCascadeSim` is a C/C++ package for generating a specified number of energy deposits resulting
-from nuetron capture-induced nuclear recoils.  The energy levels and their lifetimes are
-customizable, and multiple isotopes of the same element can be present within the simulation.
-Pre-defined energy level files exist for silicon and germanium, which are constructed from the
-data in [@abundances] and [@nudat2].  Outputs include energy deposits at each step, total
+`nrCascadeSim` allows users to generate nuclear recoil simulations that reflect a variety of single-element detector setups.
+The energy levels that the recoiling nuclei may pass between and their respective lifetimes are
+customizable, and multiple isotopes of the same element can be present within the same simulation.
+Pre-defined energy level files exist for Silicon and Germanium, which are constructed from the
+data in [@abundances] and [@nudat2].  Output values include energy deposits at each step along each individual cascade, total
 kinetic energy deposits, and ionization energy deposits, making them useful for a variety of
 applications, including nuclear recoil calibrations for dark matter direct detection or coherent
 neutrino detection (CE$\mathrm{\nu}$NS).
 
-# Example Use Case
-
-Included in the repository is an example `test-example/Yields_and_Resolutions.ipynb` which users
-can follow to ensure the code is running correctly.  This example both applies a yield model to
-the individual energy deposits and applies variation intended to simulate the resolution of the
-detector.  The yield and resolution models are described in more detail in the example notebook.
-Figure \ref{LindvSor_fig} shows overlaid histograms of different combinations of analysis on the same
-data file.
-
-![An overlaid histogram showing an example use case in which points are generated and then multiple yield models and resolutions are applied.  In this example, the x-axis represents the ionization energy "yielded" by the cascade; this is effectively a way of noting what the detector reads out as opposed to what the pure kinetic energy of the cascade is.  The Lindhard yield [@lindhard] is output by \texttt{nrCascadeSim} as \texttt{Ei}; the Sorenson yield [@sorensen] is applied to the values from \texttt{delE}.Resolutions are applied by adding random values generated from a Gaussian distribution of fixed width to the energy yield.  The "Small Res (1/5)" histograms have Gaussians with 1/5 of the width of their counterparts.  The y-axis represents the normalized frequency of energy yields.\label{LindvSor_fig}](SorVsLin_fig.pdf)
 
 # Acknowledgements
 
