@@ -156,3 +156,7 @@ The *.root files store information in a tree-like structure. The top-most key in
 The ordering of values in the arrays are consistent; that is, the nth entry of `n` corresponds to the nth entry of `cid`, the nth entry of `Elev`, and so on.
 The length of each main array should be equal to the number of simulations; that is, 
 if running 10000 events, `n` and `cid` will have lengths of 10000 and the jagged arrays will have first dimensions of length 10000.
+
+---
+
+*Last updated 2 June, 2021, v1.0.6*
